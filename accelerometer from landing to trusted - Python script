@@ -1,0 +1,41 @@
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from awsgluedq.transforms import EvaluateDataQuality
+
+args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args['JOB_NAME'], args)
+
+# Default ruleset used by all target nodes with data quality enabled
+DEFAULT_DATA_QUALITY_RULESET = """
+    Rules = [
+        ColumnCount > 0
+    ]
+"""
+
+# Script generated for node customer trusted
+customertrusted_node1742519593805 = glueContext.create_dynamic_frame.from_catalog(database="yousef-project", table_name="customer_trusted", transformation_ctx="customertrusted_node1742519593805")
+
+# Script generated for node accelerometer landing
+accelerometerlanding_node1742519484630 = glueContext.create_dynamic_frame.from_catalog(database="yousef-project", table_name="accelerometer_landing", transformation_ctx="accelerometerlanding_node1742519484630")
+
+# Script generated for node Join
+Join_node1742519525180 = Join.apply(frame1=accelerometerlanding_node1742519484630, frame2=customertrusted_node1742519593805, keys1=["user"], keys2=["email"], transformation_ctx="Join_node1742519525180")
+
+# Script generated for node Drop Fields
+DropFields_node1742519697528 = DropFields.apply(frame=Join_node1742519525180, paths=["customername", "email", "phone", "birthday", "serialnumber", "registrationdate", "lastupdatedate", "sharewithresearchasofdate", "sharewithpublicasofdate", "sharewithfriendsasofdate"], transformation_ctx="DropFields_node1742519697528")
+
+# Script generated for node accelerometer trusted
+EvaluateDataQuality().process_rows(frame=DropFields_node1742519697528, ruleset=DEFAULT_DATA_QUALITY_RULESET, publishing_options={"dataQualityEvaluationContext": "EvaluateDataQuality_node1742519324883", "enableDataQualityResultsPublishing": True}, additional_options={"dataQualityResultsPublishing.strategy": "BEST_EFFORT", "observations.scope": "ALL"})
+accelerometertrusted_node1742519716743 = glueContext.getSink(path="s3://yousef-spark-data/accelerometer/trusted/", connection_type="s3", updateBehavior="UPDATE_IN_DATABASE", partitionKeys=[], enableUpdateCatalog=True, transformation_ctx="accelerometertrusted_node1742519716743")
+accelerometertrusted_node1742519716743.setCatalogInfo(catalogDatabase="yousef-project",catalogTableName="accelerometer_trusted")
+accelerometertrusted_node1742519716743.setFormat("json")
+accelerometertrusted_node1742519716743.writeFrame(DropFields_node1742519697528)
+job.commit()
