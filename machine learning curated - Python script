@@ -1,0 +1,48 @@
+import sys
+from awsglue.transforms import *
+from awsglue.utils import getResolvedOptions
+from pyspark.context import SparkContext
+from awsglue.context import GlueContext
+from awsglue.job import Job
+from awsglue.dynamicframe import DynamicFrame
+from awsglue import DynamicFrame
+from pyspark.sql import functions as SqlFuncs
+
+def sparkSqlQuery(glueContext, query, mapping, transformation_ctx) -> DynamicFrame:
+    for alias, frame in mapping.items():
+        frame.toDF().createOrReplaceTempView(alias)
+    result = spark.sql(query)
+    return DynamicFrame.fromDF(result, glueContext, transformation_ctx)
+args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+sc = SparkContext()
+glueContext = GlueContext(sc)
+spark = glueContext.spark_session
+job = Job(glueContext)
+job.init(args['JOB_NAME'], args)
+
+# Script generated for node accelerometer trusted
+accelerometertrusted_node1742747013058 = glueContext.create_dynamic_frame.from_catalog(database="yousef-project", table_name="accelerometer_trusted", transformation_ctx="accelerometertrusted_node1742747013058")
+
+# Script generated for node step trainer trusted
+steptrainertrusted_node1742714466816 = glueContext.create_dynamic_frame.from_catalog(database="yousef-project", table_name="step_trainer_trusted", transformation_ctx="steptrainertrusted_node1742714466816")
+
+# Script generated for node SQL Query
+SqlQuery0 = '''
+select distinct accelerometer_trusted.timestamp, 
+accelerometer_trusted.user, accelerometer_trusted.x, 
+accelerometer_trusted.y, accelerometer_trusted.z, 
+step_trainer_trusted.sensorreadingtime, step_trainer_trusted.serialnumber, 
+step_trainer_trusted.distancefromobject
+from accelerometer_trusted, step_trainer_trusted
+where accelerometer_trusted.timestamp = 
+step_trainer_trusted.sensorreadingtime;
+'''
+SQLQuery_node1742747201978 = sparkSqlQuery(glueContext, query = SqlQuery0, mapping = {"step_trainer_trusted":steptrainertrusted_node1742714466816, "accelerometer_trusted":accelerometertrusted_node1742747013058}, transformation_ctx = "SQLQuery_node1742747201978")
+
+# Script generated for node Drop Duplicates
+DropDuplicates_node1742747318066 =  DynamicFrame.fromDF(SQLQuery_node1742747201978.toDF().dropDuplicates(), glueContext, "DropDuplicates_node1742747318066")
+
+# Script generated for node ML curated
+MLcurated_node1742714534236 = glueContext.write_dynamic_frame.from_catalog(frame=DropDuplicates_node1742747318066, database="yousef-project", table_name="machine_learning_curated", transformation_ctx="MLcurated_node1742714534236")
+
+job.commit()
